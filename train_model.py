@@ -1,4 +1,4 @@
-from dataProcess import get_data_split
+from dataProcess import get_data_split, bar_graph
 import torch
 import torch.nn as nn
 import warnings
@@ -102,6 +102,7 @@ if __name__ == "__main__":
     parser.add_argument("-ep", '--epochs', type=int, default=10)
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.001)
     args = parser.parse_args()
+    bar_graph()
     train, test, val = get_data_split("classified/", args.batch_size)
     model = CNN()
     print(model)
