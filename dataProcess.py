@@ -12,6 +12,7 @@ from sklearn.model_selection import train_test_split
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import splitfolders
+import os
 
 def load_data(path):
     reshape_size = torchvision.transforms.Resize((64, 64))
@@ -39,6 +40,19 @@ def im_convert(tensor):
     image = image.clip(0, 1)
     return image
 
+def bar_graph()
+    path = '/Users/manishsehgal/Desktop/COMP6721-AI/AppliedAI_FaceMaskDetection/classified/'
+    list= []
+    list.append(len(os.listdir(path+'cloth')))
+    list.append(len(os.listdir(path + 'ffp2')))
+    list.append(len(os.listdir(path + 'ffp2_valve')))
+    list.append(len(os.listdir(path + 'surgical')))
+    list.append(len(os.listdir(path + 'without_mask')))
+    fig = plt.figure()
+    ax = fig.add_axes([0, 0, 1, 1])
+    var = ['cloth','ffp2','ffp2_valve','surgical','without_mask']
+    ax.bar(var, list)
+    plt.show()
 
 def get_data_split(folder_path, batch_size):
     splitfolders.ratio(folder_path, output="output", seed=80, ratio=(.7, 0.2, 0.1))
