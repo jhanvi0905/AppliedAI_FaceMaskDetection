@@ -40,7 +40,7 @@ def im_convert(tensor):
     image = image.clip(0, 1)
     return image
 
-def bar_graph()
+def bar_graph():
     path = '/Users/manishsehgal/Desktop/COMP6721-AI/AppliedAI_FaceMaskDetection/classified/'
     list= []
     list.append(len(os.listdir(path+'cloth')))
