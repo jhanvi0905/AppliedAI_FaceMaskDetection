@@ -15,9 +15,9 @@ import splitfolders
 import os
 
 def load_data(path):
-    reshape_size = torchvision.transforms.Resize((64, 64))
+    reshape_size = torchvision.transforms.Resize((128, 128))
     data_type = torchvision.transforms.ToTensor()
-    normalized_metrics = transforms.Normalize((0.5,), (0.5,))
+    normalized_metrics = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
     return ImageFolder(root = path,transform = torchvision.transforms.Compose([reshape_size, data_type, normalized_metrics]))
 
 
@@ -41,7 +41,7 @@ def im_convert(tensor):
     return image
 
 def bar_graph():
-    path = '/Users/manishsehgal/Desktop/COMP6721-AI/AppliedAI_FaceMaskDetection/classified/'
+    path = '/Users/jhanviarora/Desktop/Project/classified/'
     list= []
     list.append(len(os.listdir(path+'cloth')))
     list.append(len(os.listdir(path + 'ffp2')))
@@ -54,26 +54,38 @@ def bar_graph():
     ax.bar(var, list)
     plt.show()
 
-def get_data_split(folder_path, batch_size):
-    splitfolders.ratio(folder_path, output="output", seed=80, ratio=(.7, 0.2, 0.1))
-    #train, test = train_test_split(dataset,test_size=0.25, random_state=30)
-    dataset_train = load_data("output/train")
-    dataset_test = load_data("output/test")
-    dataset_val = load_data("output/val")
-    train_set= training_loader(dataset_train, batch_size)
-    validation_set = validation_loader(dataset_test, batch_size)
-    test_set = validation_loader(dataset_val, batch_size)
-    print("the length of train data: ", len(dataset_train))
-    print("Length of test and validation data: ", len(dataset_val))
-    data_iter = iter(train_set)
-    images, labels = data_iter.next()
-    fig = plt.figure(figsize=(25, 4))
-    print("Instance of Loaded Samples")
-    classes = ['Cloth Mask', 'FFP2 Mask','FFP2 Mask With Valve','Surgical Mask', 'Without Mask']
-    
-    for idx in np.arange(10):
-        fig.add_subplot(2,10,idx+1)
-        plt.imshow(im_convert(images[idx]))
-    plt.title(classes[labels[idx].item()])
+def get_data_split(folder_path, batch_size, kfold = True, bias=1):
+    if not kfold:
+        if bias == 1:
+            extra_fol1 = '/Female/'
+            extra_fol2 = '/Male/'
+        else:
+            extra_fol1 = '/Old/'
+            extra_fol2 = '/Young/'
+        splitfolders.ratio(folder_path+ extra_fol1, output="output_fol1", seed=80, ratio=(.7, 0.2, 0.1))
+        splitfolders.ratio(folder_path + extra_fol2, output="output_fol2", seed=80, ratio=(.7, 0.2, 0.1))
+        dataset_train_fol1 = load_data("output_fol1/train")
+        dataset_val_fol1 = load_data("output_fol1/val")
+        dataset_train_fol2 = load_data("output_fol2/train")
+        dataset_val_fol2 = load_data("output_fol2/val")
+        total_train_dataset = torch.utils.data.ConcatDataset([dataset_train_fol2, dataset_train_fol1])
+        total_val_dataset = torch.utils.data.ConcatDataset([dataset_val_fol1, dataset_val_fol2])
+        train_set = training_loader(total_train_dataset, batch_size)
+        validation_set = validation_loader(total_val_dataset, batch_size)
+        print("the length of train data: ", len(total_train_dataset))
+        print("Length of test: ", len(total_val_dataset))
+        data_iter = iter(train_set)
+        images, labels = data_iter.next()
+        fig = plt.figure(figsize=(25, 4))
+        print("Instance of Loaded Samples")
+        classes = ['Cloth Mask', 'FFP2 Mask','FFP2 Mask With Valve','Surgical Mask', 'Without Mask']
+        for idx in np.arange(10):
+            fig.add_subplot(2,10,idx+1)
+            plt.imshow(im_convert(images[idx]))
+            plt.title(classes[labels[idx].item()])
+        return train_set, validation_set
+    else:
+        return load_data(folder_path)
 
-    return train_set, validation_set, test_set
+
+

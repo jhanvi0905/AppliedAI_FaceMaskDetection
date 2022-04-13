@@ -1,3 +1,5 @@
+from sklearn.model_selection import KFold
+
 from dataProcess import get_data_split, bar_graph
 import torch
 import torch.nn as nn
@@ -26,25 +28,41 @@ class CNN(nn.Module):
 
             nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.AvgPool2d(2, 2),
+            nn.MaxPool2d(2, 2),
             nn.BatchNorm2d(256),
 
+            # nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),
+            # nn.ReLU(),
+            # nn.AvgPool2d(2, 2),
+            # nn.BatchNorm2d(512),
+
             nn.Flatten(),
-            nn.Linear(256 * 2 * 2, 512),
-            nn.Dropout(0.5),
-            nn.Linear(512, 256),
-            nn.Linear(256, 5)
+            nn.Linear(256 * 4 * 4, 128),
+            nn.Linear(128, 64),
+            nn.Linear(64, 5)
         )
 
     def forward(self, x):
         return self.network(x)
-
 
 def intialize_optimizer(lr, model):
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     return optimizer, criterion
 
+
+def train_model_kfold(dataset, model, optimizer, criterion, epochs, batch_size):
+
+    kfold = KFold(n_splits=10, shuffle=True)
+    for fold, (train_idx, test_idx) in enumerate(kfold.split(dataset)):
+        print('------------fold no---------{}----------------------'.format(fold))
+        train_subsampler = torch.utils.data.SubsetRandomSampler(train_idx)
+        test_subsampler = torch.utils.data.SubsetRandomSampler(test_idx)
+
+        trainloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=train_subsampler)
+        testloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=test_subsampler)
+
+        train_model(trainloader, testloader, model, optimizer, criterion, epochs)
 
 def train_model(dataset_train, dataset_val, model, optimizer, criterion, epochs):
     epochs = epochs
@@ -99,13 +117,19 @@ def train_model(dataset_train, dataset_val, model, optimizer, criterion, epochs)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-bs", '--batch_size', type=int, default=100)
+    parser.add_argument("-k", '--kfold', type=int, default=0)
     parser.add_argument("-ep", '--epochs', type=int, default=10)
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.001)
+    parser.add_argument("-bias", "--bias", type=int, default=1)
     args = parser.parse_args()
-    bar_graph()
-    train, test, val = get_data_split("classified/", args.batch_size)
+    # bar_graph()
     model = CNN()
     print(model)
     optimizer, loss = intialize_optimizer(args.learning_rate, model)
-    train_model(train, val, model, optimizer, loss, args.epochs)
+    if args.kfold == 0:
+        train, val = get_data_split("Final_Dataset_Project2/", args.batch_size, False, args.bias)
+        train_model(train, val, model, optimizer, loss, args.epochs)
+    else:
+        dataset = get_data_split("Final_Dataset_Project2/", args.batch_size, True, args.bias)
+        train_model_kfold(dataset, model, optimizer, loss, args.epochs, args.batch_size)
     torch.save(model, 'output_models/ep' + str(args.epochs) + 'bs' + str(args.batch_size) + '.h5')
